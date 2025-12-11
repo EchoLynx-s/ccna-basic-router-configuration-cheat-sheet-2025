@@ -766,3 +766,378 @@ You’re given a partially documented network. Some hosts cannot reach remote ne
 If a host can reach local devices but **not remote networks**, always check the
 **default gateway configuration** first (on both the host and the router
 interface that should be acting as the gateway).
+
+
+---
+
+## 10.4 Module Practice and Quiz
+
+This section is a wrap-up of **Module 10 – Basic Router Configuration**.  
+Use it to quickly review hardware differences, core CLI commands, and the
+concepts checked in the module quiz.
+
+---
+
+### 10.4.1 Video – Network Device Differences – Part 1
+
+**Focus:** Physical ports and modules on Cisco routers used in NetAcad labs.
+
+**Key devices shown**
+
+- **Cisco 4000 Series ISR (e.g., 4321, 4221)**
+  - Two **integrated Gigabit Ethernet ports**:
+    - `GigabitEthernet0/0/0`
+    - `GigabitEthernet0/0/1`
+  - Some Gigabit ports are **shared with an SFP slot**:
+    - Yellow line on chassis = same logical interface (copper *or* SFP).
+    - Only one side (copper or SFP) can be active at a time.
+  - **NIM slots (Network Interface Module)** on the right:
+    - Take modular cards for extra serial or Ethernet interfaces.
+    - Serial interfaces appear as `Serial0/0/0`, `Serial0/0/1`, etc.
+
+- **Cisco 2900 Series Router**
+  - Larger 2-RU router with **EH WIC slots**  
+    (Enhanced High-speed WAN Interface Cards).
+  - Multiple integrated Gigabit ports (`Gig0/0`, `Gig0/1`, `Gig0/2`).
+  - Some Gigabit ports share an **SFP uplink** (again, copper or SFP, not both).
+
+- **Cisco 1900 Series Router**
+  - Smaller chassis, fewer EH WIC slots.
+  - Typically **two integrated Gigabit ports** plus serial ports via WICs.
+
+**Study notes**
+
+- **Integrated ports** = built-in on the router motherboard.  
+- **Modular ports (NIM/WIC)** = added via plug-in cards.
+- **Interface naming:**
+  - `GigabitEthernet0/0/0` → type / slot / port.
+  - Shared copper/SFP: same logical name, you choose the medium.
+- In labs, always **identify which exact model you have**  
+  and which ports are active in the topology.
+
+---
+
+### 10.4.2 Video – Network Device Differences – Part 2  
+*(Subnetting & ANDing review)*
+
+Even though it’s under the “device differences” heading, this video
+actually revises **IPv4 subnetting** and **binary ANDing**.
+
+**Logical ANDing**
+
+- IP address and subnet mask are converted to **binary**.
+- Each bit is ANDed:
+  - `1 AND 1 = 1`, everything else = `0`.
+- Result = **network address**.
+
+Example:
+
+- Host IP: `192.168.1.10`
+- Mask: `255.255.255.0` (`/24`)
+- Binary AND → **network** `192.168.1.0`.
+
+**Classful masks (review)**
+
+- Class A → `/8` → `255.0.0.0`
+- Class B → `/16` → `255.255.0.0`
+- Class C → `/24` → `255.255.255.0`
+
+**Moving to classless masks (subnetting)**
+
+Example: starting network `192.168.1.0/24`
+
+- Convert mask to binary and **borrow host bits** from left to right.
+- Borrow **1 bit** from host portion:
+  - Mask becomes `/25` → `255.255.255.128`
+  - New host bits: `7`
+  - **# of subnets:** `2^1 = 2`
+  - **Hosts per subnet:** `2^7 - 2 = 128 - 2 = 126`
+
+Subnets created:
+
+1. `192.168.1.0/25`
+   - Hosts: `192.168.1.1 – 192.168.1.126`
+   - Broadcast: `192.168.1.127`
+2. `192.168.1.128/25`
+   - Hosts: `192.168.1.129 – 192.168.1.254`
+   - Broadcast: `192.168.1.255`
+
+**Proving with ANDing**
+
+- IP `192.168.1.68` AND `/25` → network `192.168.1.0`
+- IP `192.168.1.138` AND `/25` → network `192.168.1.128`
+
+**Formulas to remember**
+
+- `# subnets = 2^(# subnet bits borrowed)`
+- `# hosts per subnet = 2^(# host bits) - 2`
+- First address in subnet = **network address**.  
+  Last address in subnet = **broadcast address**.
+
+---
+
+### 10.4.3 Lab – Build a Switch and Router Network
+
+Lab / Packet Tracer activity to practise building a small routed network.
+
+**Skills practised**
+
+1. **Set up the topology**
+   - Cable routers, switches, and PCs according to the addressing table.
+2. **Configure devices**
+   - Basic router config (hostname, passwords, banner).
+   - Interface IPs (IPv4/IPv6) and `no shutdown`.
+   - Switch SVI IP and default gateway (for management).
+3. **Verify connectivity**
+   - Use `show ip interface brief` / `show ipv6 interface brief`.
+   - Verify routing tables with `show ip route` / `show ipv6 route`.
+   - Test pings end-to-end.
+
+**Lab mindset**
+
+- Configure **one device at a time**, then verify before moving on.
+- If pings fail, check:
+  - Interface status (up/up?).
+  - IP addressing & masks.
+  - Default gateways on hosts & switch.
+
+---
+
+### 10.4.4 What did I learn in this module?
+
+#### Configure Initial Router Settings
+
+Core one-time tasks when bringing up a new router:
+
+1. **Configure hostname**
+
+   ```text
+   Router(config)# hostname R1
+   ```
+
+2. **Secure privileged EXEC mode**
+
+   ```text
+   R1(config)# enable secret <STRONG-PASSWORD>
+   ```
+
+3. **Secure user EXEC (console) access**
+
+   ```text
+   R1(config)# line console 0
+   R1(config-line)# password <PASSWORD>
+   R1(config-line)# login
+   ```
+
+4. **Secure remote VTY (Telnet/SSH) access**
+
+   ```text
+   R1(config)# line vty 0 4
+   R1(config-line)# password <PASSWORD>
+   R1(config-line)# login
+   R1(config-line)# transport input ssh telnet
+   ```
+
+5. **Encrypt all clear-text passwords**
+
+   ```text
+   R1(config)# service password-encryption
+   ```
+
+6. **Configure a legal notification (MOTD banner)**
+
+   ```text
+   R1(config)# banner motd #Authorized Access Only!#
+   ```
+
+7. **Save the configuration**
+
+   ```text
+   R1# copy running-config startup-config
+   ```
+
+---
+
+#### Configure Interfaces
+
+Routers must have **interfaces configured and enabled** to be reachable.
+
+Typical steps (per interface):
+
+```text
+R1(config)# interface gigabitEthernet0/0/0
+R1(config-if)# description Link to LAN
+R1(config-if)# ip address 192.168.10.1 255.255.255.0
+R1(config-if)# ipv6 address 2001:db8:acad:10::1/64
+R1(config-if)# no shutdown
+```
+
+**Key verification commands**
+
+- `show ip interface brief`
+- `show ipv6 interface brief`
+- `show ip route`
+- `show ipv6 route`
+- `show interfaces`
+- `show ip interface`
+- `show ipv6 interface`
+
+---
+
+#### Configure the Default Gateway
+
+**On hosts**
+
+- Default gateway = **IP of the router interface** on the same network.
+- Used only when destination is on a **different network**.
+
+**On a Layer 2 switch**
+
+- Configure management SVI:
+
+  ```text
+  S1(config)# interface vlan 1
+  S1(config-if)# ip address 192.168.10.50 255.255.255.0
+  S1(config-if)# no shutdown
+  ```
+
+- Configure default gateway (router interface IP):
+
+  ```text
+  S1(config)# ip default-gateway 192.168.10.1
+  ```
+
+- For IPv6, switches typically learn the default gateway from **Router
+  Advertisement (RA)** messages; manual config is less common.
+
+---
+
+### 10.4.5 Module Quiz – Basic Router Configuration
+
+Use this as a **Q&A quick review** before the official quiz.
+
+---
+
+#### Q1  
+**A router boots and enters setup mode. What is the reason for this?**
+
+> **Answer:** The configuration file is missing from NVRAM.
+
+- No startup-config → router drops into **setup mode** to help you create one.
+
+---
+
+#### Q2  
+**Which command is used to encrypt all passwords in a router configuration file?**
+
+> **Answer:** `service password-encryption`
+
+- Encrypts all current clear-text passwords (console, vty, `enable password`).
+
+---
+
+#### Q3  
+**Company policy requires the most secure method to protect privileged EXEC access. The password is `trustknow1`. Which command provides the highest security?**
+
+> **Answer:** `enable secret trustknow1`
+
+- `enable secret` stores a **hashed** password; `enable password` is plain text.
+
+---
+
+#### Q4  
+**What is the router prompt after `Router(config)# hostname portsmouth` is entered?**
+
+> **Answer:** `portsmouth(config)#`
+
+- You stay in **global configuration mode**, but the hostname in the prompt changes.
+
+---
+
+#### Q5  
+**An administrator is configuring out-of-band management access. Which commands allow login using the password `cisco`?**
+
+> **Answer:**
+> ```text
+> Router(config)# line console 0
+> Router(config-line)# password cisco
+> Router(config-line)# login
+> ```
+
+- Out-of-band management uses the **console line**.
+
+---
+
+#### Q6  
+**Which command displays all interfaces, IPv4 addresses, and current status?**
+
+> **Answer:** `show ip interface brief`
+
+- Gives a **one-line summary per interface**: IP, method, status, protocol.
+
+---
+
+#### Q7  
+**Which CLI mode allows users to access all device commands (configuration, management, troubleshooting)?**
+
+> **Answer:** **Privileged EXEC mode** (`Router#`)
+
+- User EXEC (`>` prompt) is limited; configuration modes hang off Privileged EXEC.
+
+---
+
+#### Q8  
+**What is the purpose of the startup configuration file on a Cisco router?**
+
+> **Answer:** To contain the commands that are used to initially configure a router on startup.
+
+- `startup-config` (NVRAM) is loaded into RAM as the **running configuration** at boot.
+
+---
+
+#### Q9  
+**Which characteristic describes the default gateway of a host computer?**
+
+> **Answer:** The **logical address (IP)** of the router interface on the same network as the host.
+
+- Hosts send all **off-net traffic** to this IP.
+
+---
+
+#### Q10  
+**What is the purpose of the `banner motd` command?**
+
+> **Answer:** It provides a way to make announcements or warnings to those who log in to a router.
+
+- Commonly used for **legal warnings**: “Authorized access only!”, etc.
+
+---
+
+#### Q11  
+**A technician is typing the command `login` as part of configuring management access. Which configuration mode must be used?**
+
+> **Answer:** **Any line configuration mode**  
+> (e.g. `line console 0`, `line vty 0 4`)
+
+- `login` is a **line sub-command**, not a global command.
+
+---
+
+#### Q12  
+**What is stored in the NVRAM of a Cisco router?**
+
+> **Answer:** The **startup configuration**.
+
+- IOS is in **flash**, running-config is in **RAM**, boot instructions in **ROM**.
+
+---
+
+#### Q13  
+**Which statement about the `service password-encryption` command is true?**
+
+> **Answer:** As soon as `service password-encryption` is entered, all currently set passwords that were formerly displayed in plain text are encrypted.
+
+- It **encrypts existing clear-text passwords** in the configuration.
+- `no service password-encryption` does *not* decrypt them; it just stops encrypting new ones.
+
+---
